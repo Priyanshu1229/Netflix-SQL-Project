@@ -1,0 +1,206 @@
+SHOW DATABASES;
+use netflix;
+-- Netflix Project
+drop table if exists netflix;
+create table  netflix(
+show_id	VARCHAR(6),
+type varchar(10),
+title varchar(150),
+director varchar(208),
+CASTs varchar(1000)	,
+country	varchar(150),
+date_added	varchar(50),
+release_year int,	
+rating	varchar(10),
+duration varchar(15),
+listed_in varchar(100),	
+description varchar(260)
+);
+select * from netflix;
+show databases;
+
+select count(*) as total_content 
+from netflix;
+
+USE NETFLIX;
+
+-- 15 business problems 
+
+-- 1. Count the number of Movies vs TV Shows
+select 
+ type,
+  count(*) as total_content
+ from  netflix
+group by type;
+
+
+-- 2. Find the most common rating for movies and TV shows
+
+SELECT
+    type,
+    rating
+FROM
+(
+    SELECT
+        type,
+        rating,
+        COUNT(*) AS count_rating,
+        RANK() OVER (PARTITION BY type ORDER BY COUNT(*) DESC) AS ranking
+    FROM netflix
+    GROUP BY type, rating
+) AS tl
+WHERE ranking = 1;
+
+-- 3. List all movies released in a specific year (e.g., 2020)
+ -- filter movies
+ -- year 
+
+select  *from netflix
+where type = 'movie'
+and release_year=2020;
+
+
+--  4. Find the top 5 countries with the most content on Netflix
+
+WITH RECURSIVE c AS (
+  SELECT show_id,
+         TRIM(SUBSTRING_INDEX(country, ',', 1)) AS country,
+         SUBSTRING(country, LOCATE(',', country) + 1) AS rest
+  FROM netflix
+  WHERE country IS NOT NULL
+
+  UNION ALL
+
+  SELECT show_id,
+         TRIM(SUBSTRING_INDEX(rest, ',', 1)) AS country,
+         SUBSTRING(rest, LOCATE(',', rest) + 1) AS rest
+  FROM c
+  WHERE rest IS NOT NULL
+    AND rest <> ''
+    AND LOCATE(',', rest) > 0
+)
+SELECT country, COUNT(*) AS total_content
+FROM c
+GROUP BY country
+ORDER BY total_content DESC
+LIMIT 5;
+
+
+-- 5. Identify the longest movie
+
+SELECT *
+FROM netflix
+WHERE type = 'Movie'
+ORDER BY CAST(SUBSTRING_INDEX(duration, ' ', 1) AS UNSIGNED) DESC
+LIMIT 1;
+
+
+-- 6.Find content added in the last 5 years
+SELECT *
+FROM netflix
+WHERE STR_TO_DATE(date_added, '%M %d, %Y') >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR);
+
+-- 7. Find all the movies/TV shows by director 'Rajiv Chilaka'!
+
+select *
+from netflix where director like '%rajiv chilaka%';
+
+-- 8. List all TV shows with more than 5 seasons
+
+SELECT *
+FROM netflix
+WHERE type = 'TV Show'
+  AND CAST(SUBSTRING_INDEX(duration, ' ', 1) AS UNSIGNED) >= 5;
+  
+  
+  -- 9. Count the number of content items in each genre
+  
+WITH RECURSIVE g AS (
+  SELECT show_id,
+         TRIM(SUBSTRING_INDEX(listed_in, ',', 1)) AS genre,
+         SUBSTRING(listed_in, LOCATE(',', listed_in) + 1) AS rest
+  FROM netflix
+
+  UNION ALL
+
+  SELECT show_id,
+         TRIM(SUBSTRING_INDEX(rest, ',', 1)),
+         SUBSTRING(rest, LOCATE(',', rest) + 1)
+  FROM g
+  WHERE rest <> '' AND rest IS NOT NULL
+)
+SELECT genre, COUNT(*) AS total_shows
+FROM g
+GROUP BY genre
+ORDER BY total_shows DESC;
+
+-- 10. Find each year and the average numbers of content release by India on netflix. 
+-- return top 5 year with highest avg content release !
+
+SELECT 
+    YEAR(STR_TO_DATE(date_added, '%M %d, %Y')) AS year,
+    COUNT(*) AS yearly_content,
+    ROUND(
+        COUNT(*) / 
+        (SELECT COUNT(*) FROM netflix WHERE country = 'India'),
+        2
+    ) AS avg_content_per_year
+FROM netflix
+WHERE country = 'India'
+GROUP BY YEAR(STR_TO_DATE(date_added, '%M %d, %Y'))
+ORDER BY year;
+
+
+
+
+-- 11. List all movies that are documentaries
+
+SELECT * FROM netflix
+WHERE listed_in LIKE '%Documentaries';
+
+
+-- 12. Find all content without a director
+-- Find all content without a director (SQL Server version)
+SELECT *
+FROM netflix
+WHERE director IS NULL
+   OR director = '';
+
+-- 13. Find how many movies actor 'Salman Khan' appeared in last 10 years!
+SELECT COUNT(*) AS total_movies
+FROM netflix
+WHERE type = 'Movie'
+  AND casts LIKE '%Salman Khan%'
+  AND release_year >= EXTRACT(YEAR FROM CURRENT_DATE) - 10;
+
+-- 14. Find the top 10 actors who have appeared in the highest number of movies produced in India.
+SELECT 
+    actor,
+    COUNT(*) AS total_count
+FROM netflix
+JOIN JSON_TABLE(
+        IF(casts IS NULL OR casts = '', '[]', CONCAT('["', REPLACE(casts, ',', '","'), '"]')),
+        '$[*]' COLUMNS(actor VARCHAR(255) PATH '$')
+     ) AS jt
+WHERE country = 'India'
+GROUP BY actor
+ORDER BY total_count DESC
+LIMIT 10;
+
+
+
+/*
+Question 15:
+Categorize the content based on the presence of the keywords 'kill' and 'violence' in 
+the description field. Label content containing these keywords as 'Bad' and all other 
+content as 'Good'. Count how many items fall into each category.
+*/
+SELECT
+    CASE
+        WHEN LOWER(description) LIKE '%kill%' OR LOWER(description) LIKE '%violence%' THEN 'Bad'
+        ELSE 'Good'
+    END AS category,
+    COUNT(*) AS total_count
+FROM netflix
+GROUP BY category;
+
