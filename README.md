@@ -23,4 +23,6 @@ The dataset contains details of Netflix titles such as:
   - Content produced by country  
   - Year-wise trend of new releases  
   - Most frequent actors in Indian content  
-  - Categorization of content based on keywords in the description  
+  - Categorization of content based on keywords in the description
+![netflix logo]()
+   
