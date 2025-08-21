@@ -24,5 +24,7 @@ The dataset contains details of Netflix titles such as:
   - Year-wise trend of new releases  
   - Most frequent actors in Indian content  
   - Categorization of content based on keywords in the description
-![netflix logo]()
+ 
+
+![netflix logo](https://github.com/Priyanshu1229/Netflix-SQL-Project/blob/main/netflix%20download.png)
    
